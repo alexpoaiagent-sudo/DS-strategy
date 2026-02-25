@@ -2,7 +2,7 @@
 type: extraction-report
 source: inbox-check
 date: 2026-02-25
-status: pending-review
+status: applied
 processed: 5
 remaining: 2
 ---
