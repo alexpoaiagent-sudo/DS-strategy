@@ -91,6 +91,7 @@ Level 3: DS (третьи принципы)        ← производные о
 3. **Pull-before-Commit (DS-strategy):** `git pull --rebase` → модификация → `commit` → `push`. Нарушение = конфликты.
 4. **Без Obsidian (DS-strategy):** Просмотр через VS Code, НЕ Obsidian.
 5. **Close:** При триггере Закрытия → протокол Закрытия → выполнить.
+6. **Выбор модели:** Объявить в Ритуале согласования. Opus (архитектура, сложный код), Sonnet (типовые задачи), Haiku (поиск, простые фиксы). Детали → `memory/protocol-open.md`.
 
 ### Протокол Работы (summary, полный → `memory/protocol-work.md`)
 
@@ -182,4 +183,4 @@ Backup на Close: `memory/ + CLAUDE.md → DS-strategy/exocortex/`
 
 ---
 
-*Последнее обновление: 2026-02-25*
+*Последнее обновление: 2026-03-04*
