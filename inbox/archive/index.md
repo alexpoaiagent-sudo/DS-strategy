@@ -26,6 +26,9 @@ bash ~/Github/FMT-exocortex-template/roles/extractor/scripts/claude-run.sh archi
 | rejected/CO.reject.002-kitchen-move.md | capture | 2026-02-25 | governance — переезд помещения, не операционный стандарт | #governance #кухня | rejected |
 | rejected/CO.reject.003-chef-umami.md | capture | 2026-02-25 | governance — коллаборация, не доменное знание | #governance #партнёры | rejected |
 | rejected/CO.reject.004-saby-presto.md | capture | 2026-02-25 | governance — интеграция инструмента, не операционный стандарт | #governance #инструменты | rejected |
+| rejected/CO.reject.005-task-saby-support.md | capture | 2026-03-14 | governance — задача (task), не доменное знание Pack | #task #saby #governance | rejected |
+| rejected/CO.reject.006-task-architect-replies.md | capture | 2026-03-14 | governance — задача (task), не доменное знание Pack | #task #архитектор #governance | rejected |
+| rejected/CO.reject.007-task-coffee-cards.md | capture | 2026-03-14 | governance — задача (task), не доменное знание Pack | #task #карточки #зерно #governance | rejected |
 
 ---
 
