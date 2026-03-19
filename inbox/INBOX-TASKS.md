@@ -506,6 +506,22 @@ created: 2026-03-04
   - Артефакт: PARK.WP.024 (финальная версия)
   - Репо: VK-offee (PACK-park-development)
 
+- [pending] 2026-03-19: Починить и стабилизировать Telegram бот VK-offee
+  - Контекст: Бот сырой — падает с NetworkError (DNS), использует OpenAI вместо Claude, ищет в knowledge-base/ вместо Pack
+  - Приоритет: high
+  - Проблемы:
+    1. NetworkError при старте без сети — нет retry логики
+    2. search_knowledge_base() ищет в knowledge-base/ — устарело, нужно искать в PACK-*
+    3. Использует OpenAI API — нужно переключить на Claude
+    4. Не запущен постоянно — нет launchd агента или VPS
+  - Действия:
+    1. Добавить retry + reconnect логику при NetworkError
+    2. Переключить поиск на PACK-* директории
+    3. Заменить OpenAI на Claude API
+    4. Настроить автозапуск (launchd или VPS)
+  - Репо: VK-offee/telegram-bot/
+  - Бюджет: ~3h
+
 - [pending] 2026-03-17: Интеграция Claude Code с Telegram (отправка сообщений)
   - Контекст: Нужна возможность отправлять карточки, напоминания, отчёты из Claude Code в Telegram
   - Приоритет: medium
