@@ -130,3 +130,4 @@
 | **Системно-специфичное** | **→ repo/CLAUDE.md** |
 | Стратег | `DS-strategist/README.md` |
 | **Архитектура экзокортекса** | `memory/architecture.md` |
+| **Натуральные триггеры старта сессии** | `memory/feedback-natural-session-start.md` |
