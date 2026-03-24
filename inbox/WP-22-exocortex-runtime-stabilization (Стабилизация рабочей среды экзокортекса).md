@@ -114,7 +114,19 @@ deadline: 2026-03-24
 - В strategist исправлена семантика lock-collision: scheduler больше не должен считать занятый lock успешным выполнением сценария
 - В status layer убрана ложная зелень: `health-check`, `daily-report` и `scheduler status` различают актуальный success и `stale`-статус из предыдущего окна
 - Исправлена bash-совместимость scheduler evidence layer: `scheduler.sh` больше не использует `mapfile`, отсутствующий в системном bash 3.2 на macOS; ложные `failed` после `exit_code=0` для `synchronizer-code-scan` устранены, точечная проверка `run_task` вернула `STATUS=success`, `EVIDENCE_STATUS=verified`
+- Добавлен первый пакет blocker hotfix для `scheduler/dispatch` и truthful close-flow: в strategist введены runtime budget для `morning` / `day-plan` / `session-prep` / `note-review` / `week-review`, в scheduler добавлены `dispatch-lock` и `task-lock`, статус-артефакт получил признак `COMPLETED_WINDOW`, а `close-task.sh` теперь делает preflight на `rebase/merge/cherry-pick/index.lock` и больше не выполняет второй глобальный pass по всем репозиториям
+- Проверки пакета пройдены точечно: `bash -n` для горячих скриптов — ok, isolated `run_task` для `synchronizer-code-scan` дал `STATUS=success`, stale-lock даёт `STATUS=stale_lock`, synthetic preflight для blocking git state отрабатывает
 - Зафиксировано отдельное follow-up действие: после завершения нового truthful close/readiness пакета сравнить локальную реализацию с решением Церена и исправить регрессии только если локально получилось хуже
+
+### Точка остановки на конец дня
+- Полный `scheduler.sh dispatch` **не запускался специально**, чтобы не возвращать симптом зависания до завершения точечных проверок
+- Реальный `daily-report` после нового hotfix ещё не проверен на живых артефактах
+- Релиз 2 (консолидация триггеров `VK-offee`: `cron` / `launchd` / `post-commit`) ещё не начат
+
+### Старт завтра
+1. Точечно проверить `daily-report.sh` и truthfulness status layer на живых артефактах, **без** полного `dispatch`
+2. Прогнать truthful close-flow на реальном рабочем состоянии после нового preflight hardening
+3. Если Релиз 1 стабилен — перейти к Релизу 2: убрать конфликтующие дневные триггеры `VK-offee` и оставить один owner ночного sync-контура
 
 ### Разделение контуров после развилки работ
 - Параллельный пакет пользователя владеет контуром `close-task.sh` / `SESSION-CONTEXT.md` / `protocol-close` / `truthful readiness` / `morning screen`
