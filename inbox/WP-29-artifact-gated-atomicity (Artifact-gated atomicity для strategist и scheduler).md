@@ -2,7 +2,7 @@
 type: work-package-context
 id: WP-29
 created: 2026-03-25
-status: pending
+status: in_progress
 budget: 3h
 depends_on: WP-27, WP-28
 ---
