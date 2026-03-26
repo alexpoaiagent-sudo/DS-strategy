@@ -17,6 +17,18 @@ created: 2026-03-04
 
 ---
 
+- [in_progress] 2026-03-26: FPF-моделирование PACK-management — объектная модель домена управления сменой
+  - Контекст: Продолжение FPF-инспекции VK-offee. PACK-bar и PACK-service закрыты. Следующий домен: управление сменой (смена, отчёт).
+  - Приоритет: high
+  - Что нужно сделать:
+    1. Определить объекты PACK-management (смена, отчёт и др.)
+    2. Определить связи с cafe-operations, hr, bar, service
+    3. Сохранить DOMAIN-MODEL-v1 в PACK-management/01-domain-contract/
+  - Артефакт: DOMAIN-MODEL-v1 (Объектная модель PACK-management v1).md
+  - Репо: VK-offee
+  - Бюджет: 1-2h
+  - Источник: FPF-сессия 26.03.2026
+
 - [in_progress] 2026-03-26: Переработка архитектуры базы знаний VK-offee — domain-contract для всех PACK
   - Контекст: FPF-инспекция выявила что PACK-cafe-operations = контейнер домена «кофейня», остальные PACK (bar, kitchen, service, management, hr) = поддомены. Точки Самокиша/Тургенева/Луговая = объекты-экземпляры типа «кофейная точка» внутри PACK-cafe-operations. PACK-kitchen = отдельный PACK, связан через объекты еды.
   - Приоритет: high
