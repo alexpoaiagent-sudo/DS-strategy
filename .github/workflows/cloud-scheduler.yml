@@ -1,0 +1,165 @@
+name: Exocortex Cloud Scheduler
+
+# Облачный планировщик экзокортекса — базовый уровень (без LLM).
+# Работает независимо от Mac, $0/мес на GitHub Actions.
+#
+# Что делает:
+#   - Health check: проверяет свежесть backup, WeekPlan, коммиты по репо
+#   - Telegram уведомление с результатом (если настроен бот)
+#
+# Настройка Telegram (опционально):
+#   Settings → Secrets → Actions:
+#     TELEGRAM_BOT_TOKEN — токен бота
+#     TELEGRAM_CHAT_ID   — chat id куда слать
+
+on:
+  schedule:
+    # 01:00 UTC (04:00 МСК) — ночной цикл
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Задача'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - health-check
+
+env:
+  TZ: Europe/Moscow
+
+permissions:
+  contents: read
+
+jobs:
+  health-check:
+    name: Health check (ночная автоматика)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout DS-strategy
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+
+      - name: Clone дополнительные репо (публичные)
+        run: |
+          mkdir -p /tmp/repos
+          cp -r . /tmp/repos/DS-strategy
+
+          for REPO in VK-offee FMT-exocortex-template; do
+            git clone --depth 50 --single-branch \
+              "https://github.com/alexpoaiagent-sudo/${REPO}.git" \
+              "/tmp/repos/${REPO}" 2>/dev/null \
+              && echo "✓ cloned $REPO" \
+              || echo "⚠ skip $REPO"
+          done
+
+      - name: Generate health report
+        id: health
+        env:
+          BOT_HEALTH_URL: ${{ vars.BOT_HEALTH_URL || '' }}
+        run: |
+          TODAY=$(date +%Y-%m-%d)
+          WEEK=$(date +%V | sed 's/^0//')
+          WARNINGS=0
+
+          echo "🏥 <b>Exocortex Health Check</b> — $(date +'%d %b %Y (%A)')" > /tmp/health.txt
+          echo "" >> /tmp/health.txt
+
+          # ── 1. WeekPlan текущей недели ──
+          WEEKPLAN=$(ls current/WeekPlan\ W${WEEK}\ *.md 2>/dev/null | head -1)
+          if [ -n "$WEEKPLAN" ]; then
+            echo "✅ WeekPlan W${WEEK}: $(basename "$WEEKPLAN")" >> /tmp/health.txt
+          else
+            echo "🔴 WeekPlan W${WEEK} не найден — close-task.sh не пройдёт!" >> /tmp/health.txt
+            WARNINGS=$((WARNINGS + 1))
+          fi
+
+          # ── 2. Свежесть backup exocortex ──
+          if [ -d "exocortex" ]; then
+            BACKUP_EPOCH=$(git log -1 --format="%at" -- exocortex/ 2>/dev/null || echo "0")
+            NOW_EPOCH=$(date +%s)
+            BACKUP_AGE_H=$(( (NOW_EPOCH - BACKUP_EPOCH) / 3600 ))
+            LAST_BACKUP=$(git log -1 --format="%ar" -- exocortex/ 2>/dev/null || echo "никогда")
+            if [ "$BACKUP_AGE_H" -gt 48 ]; then
+              echo "⚠️ Backup exocortex: $LAST_BACKUP (>${BACKUP_AGE_H}ч — протух!)" >> /tmp/health.txt
+              WARNINGS=$((WARNINGS + 1))
+            else
+              echo "✅ Backup exocortex: $LAST_BACKUP" >> /tmp/health.txt
+            fi
+          else
+            echo "🔴 Папка exocortex/ не найдена" >> /tmp/health.txt
+            WARNINGS=$((WARNINGS + 1))
+          fi
+
+          # ── 3. SESSION-CONTEXT свежесть ──
+          if [ -f "current/SESSION-CONTEXT.md" ]; then
+            SC_EPOCH=$(git log -1 --format="%at" -- current/SESSION-CONTEXT.md 2>/dev/null || echo "0")
+            NOW_EPOCH=$(date +%s)
+            SC_AGE_H=$(( (NOW_EPOCH - SC_EPOCH) / 3600 ))
+            SC_LAST=$(git log -1 --format="%ar" -- current/SESSION-CONTEXT.md 2>/dev/null || echo "никогда")
+            if [ "$SC_AGE_H" -gt 72 ]; then
+              echo "⚠️ SESSION-CONTEXT: $SC_LAST (>${SC_AGE_H}ч)" >> /tmp/health.txt
+              WARNINGS=$((WARNINGS + 1))
+            else
+              echo "✅ SESSION-CONTEXT: $SC_LAST" >> /tmp/health.txt
+            fi
+          fi
+
+          # ── 4. Коммиты за 24ч по всем репо ──
+          echo "" >> /tmp/health.txt
+          echo "📊 <b>Коммиты за 24ч:</b>" >> /tmp/health.txt
+          TOTAL=0
+          for REPO_DIR in /tmp/repos/*/; do
+            [ -d "$REPO_DIR/.git" ] || continue
+            NAME=$(basename "$REPO_DIR")
+            COUNT=$(git -C "$REPO_DIR" log --since="24 hours ago" --oneline --no-merges 2>/dev/null | wc -l | tr -d ' ')
+            TOTAL=$((TOTAL + COUNT))
+            echo "   $NAME: $COUNT" >> /tmp/health.txt
+          done
+          echo "   Итого: $TOTAL" >> /tmp/health.txt
+
+          # ── 5. WP-статистика из MEMORY.md ──
+          if [ -f "exocortex/MEMORY.md" ]; then
+            WP_IN_PROGRESS=$(grep -c "| in_progress" exocortex/MEMORY.md 2>/dev/null || echo "0")
+            WP_PENDING=$(grep -c "| pending" exocortex/MEMORY.md 2>/dev/null || echo "0")
+            WP_DONE=$(grep -c "| done" exocortex/MEMORY.md 2>/dev/null || echo "0")
+            echo "" >> /tmp/health.txt
+            echo "📋 <b>РП недели:</b> ${WP_IN_PROGRESS} в работе, ${WP_PENDING} ожидают, ${WP_DONE} done" >> /tmp/health.txt
+          fi
+
+          # ── Светофор ──
+          echo "" >> /tmp/health.txt
+          if [ "$WARNINGS" -eq 0 ]; then
+            echo "🟢 Всё в порядке" >> /tmp/health.txt
+          elif [ "$WARNINGS" -le 2 ]; then
+            echo "🟡 Требует внимания ($WARNINGS предупреждений)" >> /tmp/health.txt
+          else
+            echo "🔴 Проблемы! ($WARNINGS)" >> /tmp/health.txt
+          fi
+
+          cat /tmp/health.txt
+
+      - name: Notify Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          [ -z "$TELEGRAM_BOT_TOKEN" ] && echo "Telegram не настроен — пропускаем" && exit 0
+          [ -z "$TELEGRAM_CHAT_ID" ] && echo "TELEGRAM_CHAT_ID не задан — пропускаем" && exit 0
+
+          REPORT=$(cat /tmp/health.txt)
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg text "$REPORT" \
+              --arg chat "$TELEGRAM_CHAT_ID" \
+              '{chat_id: $chat, text: $text, parse_mode: "HTML"}')" \
+            > /dev/null 2>&1 \
+            && echo "✓ Telegram уведомление отправлено" \
+            || echo "⚠ Telegram: ошибка отправки"
